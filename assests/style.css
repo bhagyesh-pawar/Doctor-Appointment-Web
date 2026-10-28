@@ -1,0 +1,41 @@
+
+body {
+    background-color: #f4f7fb;
+    color: #243447;
+    min-height: 100vh;
+}
+
+.clinic-nav {
+    background-color: #075985;
+}
+
+.card {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 5px 22px rgba(0, 0, 0, 0.06);
+}
+
+.btn-primary {
+    background-color: #087e8b;
+    border-color: #087e8b;
+}
+
+.btn-primary:hover {
+    background-color: #066773;
+    border-color: #066773;
+}
+
+.form-label {
+    font-weight: 600;
+}
+
+footer {
+    border-top: 1px solid #e2e8f0;
+}
+
+.hero {
+    background: linear-gradient(120deg, #075985, #0e7490);
+    color: white;
+    border-radius: 18px;
+    padding: 40px;
+}

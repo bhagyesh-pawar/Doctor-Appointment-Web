@@ -1,0 +1,133 @@
+
+CREATE DATABASE IF NOT EXISTS doctor_appointment_db
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE doctor_appointment_db;
+
+-- ==========================================
+-- 1. USERS TABLE
+-- Stores doctor and patient login accounts
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    email VARCHAR(190) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('doctor', 'patient') NOT NULL,
+    phone VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- ==========================================
+-- 2. CLINIC SETTINGS TABLE
+-- The doctor manages these details
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS clinic_settings (
+    id TINYINT UNSIGNED PRIMARY KEY,
+    clinic_name VARCHAR(150) NOT NULL DEFAULT 'CarePoint Clinic',
+    doctor_name VARCHAR(120) NOT NULL DEFAULT 'Clinic Doctor',
+    specialization VARCHAR(120) NOT NULL DEFAULT 'General Physician',
+    qualification VARCHAR(180),
+    clinic_address VARCHAR(255),
+    clinic_phone VARCHAR(20),
+    consultation_fee DECIMAL(10,2) NOT NULL DEFAULT 300.00,
+    opening_time TIME NOT NULL DEFAULT '09:00:00',
+    closing_time TIME NOT NULL DEFAULT '17:00:00',
+    slot_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 30,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO clinic_settings (id)
+VALUES (1);
+
+-- ==========================================
+-- 3. DOCTOR AVAILABILITY TABLE
+-- 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS doctor_availability (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    day_of_week TINYINT UNSIGNED NOT NULL UNIQUE,
+    is_available TINYINT(1) NOT NULL DEFAULT 1,
+    start_time TIME NOT NULL DEFAULT '09:00:00',
+    end_time TIME NOT NULL DEFAULT '17:00:00',
+    CHECK (day_of_week BETWEEN 0 AND 6)
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO doctor_availability
+    (day_of_week, is_available, start_time, end_time)
+VALUES
+    (0, 0, '09:00:00', '17:00:00'),
+    (1, 1, '09:00:00', '17:00:00'),
+    (2, 1, '09:00:00', '17:00:00'),
+    (3, 1, '09:00:00', '17:00:00'),
+    (4, 1, '09:00:00', '17:00:00'),
+    (5, 1, '09:00:00', '17:00:00'),
+    (6, 1, '09:00:00', '13:00:00');
+
+-- ==========================================
+-- 4. APPOINTMENTS TABLE
+-- Stores all patient appointment requests
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS appointments (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT UNSIGNED NOT NULL,
+    appointment_date DATE NOT NULL,
+    appointment_time TIME NOT NULL,
+    reason VARCHAR(500) NOT NULL,
+
+    status ENUM(
+        'pending',
+        'confirmed',
+        'rejected',
+        'cancelled',
+        'completed'
+    ) NOT NULL DEFAULT 'pending',
+
+    doctor_note VARCHAR(500),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    -- Released slots can be booked again after
+    -- rejection or cancellation.
+    active_slot_date DATE GENERATED ALWAYS AS (
+        CASE
+            WHEN status IN ('pending', 'confirmed')
+            THEN appointment_date
+            ELSE NULL
+        END
+    ) STORED,
+
+    active_slot_time TIME GENERATED ALWAYS AS (
+        CASE
+            WHEN status IN ('pending', 'confirmed')
+            THEN appointment_time
+            ELSE NULL
+        END
+    ) STORED,
+
+    CONSTRAINT fk_appointment_patient
+        FOREIGN KEY (patient_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    UNIQUE KEY unique_active_appointment_slot
+        (active_slot_date, active_slot_time),
+
+    INDEX idx_patient_id (patient_id),
+    INDEX idx_appointment_date (appointment_date),
+    INDEX idx_appointment_status (status)
+) ENGINE=InnoDB;
+
+-- ==========================================
+-- DATABASE CREATION COMPLETE
+-- ==========================================
+
+SELECT 'Database created successfully!' AS message;
